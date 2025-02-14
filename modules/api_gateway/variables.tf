@@ -1,18 +1,34 @@
-# API Gateway Variables
-
-variable "api_name" {
-  description = "The name of the API Gateway"
-  type        = string
-  default     = "TranslateAPI"
+variable "tags" {
+  description = "Additional tags for the resource"
+  type        = map(string)
 }
 
-variable "api_description" {
-  description = "A brief description of the API"
+variable "project" {
+  description = "Project name"
   type        = string
-  default     = "API Gateway for the translation service"
 }
 
-variable "lambda_invoke_arn" {
-  description = "The invoke ARN of the Lambda function"
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+variable "region" {
+  description = "AWS region to deploy the resources"
+  type        = string
+}
+
+variable "lambaFunctionInvokeArn" {
+  description = "ARN of the Lambda function to invoke"
+  type        = string
+}
+
+variable "lambdaFunctionName" {
+  description = "Name of the Lambda function"
+  type        = string
+}
+
+variable "kms_key_id" {
+  description = "The KMS key ID to use for server-side encryption"
   type        = string
 }

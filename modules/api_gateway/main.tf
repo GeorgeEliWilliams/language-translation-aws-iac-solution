@@ -1,40 +1,78 @@
-# Create API Gateway REST API
-resource "aws_api_gateway_rest_api" "translate_api" {
-  name        = "TranslateAPI"
-  description = "API Gateway for the translation service"
+resource "aws_apigatewayv2_api" "this" {
+  name          = "${var.project}-${var.environment}-APIGateway"
+  protocol_type = "HTTP"
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project}-${var.environment}-APIGateway"
+    }
+  )
 }
 
-# Create API Resource (endpoint path)
-resource "aws_api_gateway_resource" "translate_resource" {
-  rest_api_id = aws_api_gateway_rest_api.translate_api.id
-  parent_id   = aws_api_gateway_rest_api.translate_api.root_resource_id
-  path_part   = "translate"  # URL will be /translate
+resource "aws_apigatewayv2_stage" "this" {
+  api_id      = aws_apigatewayv2_api.this.id
+  name        = "dev"
+  auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.this.arn
+
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      sourceIp                = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      protocol                = "$context.protocol"
+      httpMethod              = "$context.httpMethod"
+      resourcePath            = "$context.resourcePath"
+      routeKey                = "$context.routeKey"
+      status                  = "$context.status"
+      responseLength          = "$context.responseLength"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+      }
+    )
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project}-${var.environment}-APIGatewayStage"
+    }
+  )
 }
 
-# Define the POST method for the API
-resource "aws_api_gateway_method" "post_method" {
-  rest_api_id   = aws_api_gateway_rest_api.translate_api.id
-  resource_id   = aws_api_gateway_resource.translate_resource.id
-  http_method   = "POST"
-  authorization = "NONE"  # Change if you want authentication
+resource "aws_apigatewayv2_integration" "this" {
+  api_id             = aws_apigatewayv2_api.this.id
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+
+  integration_uri = var.lambaFunctionInvokeArn
 }
 
-# Integrate API Gateway with Lambda
-resource "aws_api_gateway_integration" "lambda_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.translate_api.id
-  resource_id             = aws_api_gateway_resource.translate_resource.id
-  http_method             = aws_api_gateway_method.post_method.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = var.lambda_invoke_arn
+resource "aws_apigatewayv2_route" "this" {
+  api_id    = aws_apigatewayv2_api.this.id
+  route_key = "GET /translate"
+  target    = "integrations/${aws_apigatewayv2_integration.this.id}"
 }
 
-# Create Deployment Stage
-resource "aws_api_gateway_deployment" "translate_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.translate_api.id
-  stage_name  = "dev"
+resource "aws_lambda_permission" "this" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambdaFunctionName
+  principal     = "apigateway.amazonaws.com"
 
-  depends_on = [
-    aws_api_gateway_integration.lambda_integration
-  ]
+  source_arn = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
+}
+
+resource "aws_cloudwatch_log_group" "this" {
+  name = "/aws/api-gw/${aws_apigatewayv2_api.this.name}"
+  retention_in_days = 7
+  kms_key_id        = var.kms_key_id
+
+    tags = merge(
+    var.tags,
+    {
+      Name = "${var.project}-${var.environment}-APIGateWay-LogGroup"
+    }
+  )
 }

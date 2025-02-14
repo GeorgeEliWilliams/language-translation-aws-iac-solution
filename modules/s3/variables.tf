@@ -1,11 +1,34 @@
-# Variable for the translation requests bucket name
-variable "requests_bucket_name" {
-  description = "S3 bucket name for storing translation requests"
+variable "bucket_name" {
+  description = "The name of the S3 bucket to create"
   type        = string
 }
 
-# Variable for the translation responses bucket name
-variable "responses_bucket_name" {
-  description = "S3 bucket name for storing translation responses"
+variable "kms_key_id" {
+  description = "The KMS key ID to use for server-side encryption"
   type        = string
+}
+
+variable "tags" {
+  description = "Additional tags for the resource"
+  type        = map(string)
+}
+
+variable "project" {
+  description = "Project name"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+variable "region" {
+  description = "AWS region to deploy the resources"
+  type        = string
+}
+
+variable "bucket_policy_actions" {
+  description = "List of actions to allow in the bucket policy"
+  type        = list(string)
 }

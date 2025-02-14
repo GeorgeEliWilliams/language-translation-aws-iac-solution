@@ -1,14 +1,14 @@
-output "lambda_arn" {
+output "function_arn" {
   description = "The ARN of the created Lambda function"
-  value       = aws_lambda_function.translate_lambda.arn
+  value       = aws_lambda_function.this.arn
 }
 
-output "lambda_function_name" {
+output "function_name" {
   description = "The name of the Lambda function"
-  value       = aws_lambda_function.translate_lambda.function_name
+  value       = aws_lambda_function.this.function_name
 }
 
-output "lambda_invoke_arn" {
+output "function_invoke_arn" {
   description = "Invoke ARN of the Lambda function"
-  value       = aws_lambda_function.translate_lambda.invoke_arn
+  value       = aws_lambda_function.this.invoke_arn
 }

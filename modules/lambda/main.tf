@@ -1,25 +1,51 @@
-resource "aws_lambda_function" "translate_lambda" {
-  function_name = var.lambda_function_name
-  role          = var.lambda_role_arn
-  handler       = "lambda_translate.lambda_handler"
-  runtime       = "python3.9"
-  filename      = "${path.module}/lambda.zip"
-  timeout       = 10
+resource "aws_lambda_function" "this" {
+  function_name    = var.function_name
+  handler          = var.function_handler
+  kms_key_arn      = var.kms_key_id
+  memory_size      = 128
+  package_type     = "Zip"
+  role             = aws_iam_role.this.arn
+  runtime          = "python3.12"
+  filename         = "${path.module}/lambda_translate.zip"
+  source_code_hash = data.archive_file.this.output_base64sha256
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
-      REQUESTS_BUCKET = var.s3_requests_bucket
-      RESPONSES_BUCKET = var.s3_responses_bucket
+      REQUEST_BUCKET  = var.request_bucket
+      RESPONSE_BUCKET = var.response_bucket
     }
   }
+
+  logging_config {
+    log_format = "Text"
+    log_group  = aws_cloudwatch_log_group.this.name
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project}-${var.environment}-LambdaFunction"
+    }
+  )
+
+  depends_on = [
+    aws_cloudwatch_log_group.this,
+  ]
 }
 
-resource "null_resource" "package_lambda" {
-  provisioner "local-exec" {
-    command = "zip -j ${path.module}/lambda.zip ${path.module}/lambda_translate.py"
-  }
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/aws/lambda/${var.function_name}"
+  retention_in_days = 1
+  kms_key_id        = var.kms_key_id
 
-  triggers = {
-    script_hash = filemd5("${path.module}/lambda_translate.py")
-  }
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project}-${var.environment}-Lambda-LogGroup"
+    }
+  )
 }
