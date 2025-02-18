@@ -12,7 +12,7 @@ resource "aws_apigatewayv2_api" "this" {
 
 resource "aws_apigatewayv2_stage" "this" {
   api_id      = aws_apigatewayv2_api.this.id
-  name        = "dev"
+  name        = var.environment
   auto_deploy = true
 
   access_log_settings {
@@ -29,8 +29,7 @@ resource "aws_apigatewayv2_stage" "this" {
       status                  = "$context.status"
       responseLength          = "$context.responseLength"
       integrationErrorMessage = "$context.integrationErrorMessage"
-      }
-    )
+    })
   }
 
   tags = merge(
@@ -39,19 +38,20 @@ resource "aws_apigatewayv2_stage" "this" {
       Name = "${var.project}-${var.environment}-APIGatewayStage"
     }
   )
+
+  depends_on = [aws_cloudwatch_log_group.this]
 }
 
 resource "aws_apigatewayv2_integration" "this" {
   api_id             = aws_apigatewayv2_api.this.id
   integration_type   = "AWS_PROXY"
-  integration_method = "POST"
-
-  integration_uri = var.lambaFunctionInvokeArn
+  integration_method = var.api_gateway_method
+  integration_uri    = var.lambaFunctionInvokeArn
 }
 
 resource "aws_apigatewayv2_route" "this" {
   api_id    = aws_apigatewayv2_api.this.id
-  route_key = "GET /translate"
+  route_key = "${var.api_gateway_method} ${var.api_gateway_route}"
   target    = "integrations/${aws_apigatewayv2_integration.this.id}"
 }
 
@@ -60,16 +60,19 @@ resource "aws_lambda_permission" "this" {
   action        = "lambda:InvokeFunction"
   function_name = var.lambdaFunctionName
   principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*${var.api_gateway_route}"
+}
 
-  source_arn = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
+resource "aws_api_gateway_account" "this" {
+  cloudwatch_role_arn = aws_iam_role.this.arn
 }
 
 resource "aws_cloudwatch_log_group" "this" {
-  name = "/aws/api-gw/${aws_apigatewayv2_api.this.name}"
+  name              = "/aws/api-gw/${aws_apigatewayv2_api.this.name}"
   retention_in_days = 7
   kms_key_id        = var.kms_key_id
 
-    tags = merge(
+  tags = merge(
     var.tags,
     {
       Name = "${var.project}-${var.environment}-APIGateWay-LogGroup"

@@ -1,3 +1,4 @@
+# IAM role for the Lambda function with permissions to execute Lambda
 resource "aws_iam_role" "this" {
   name = "${var.project}-${var.environment}-LambdaRole"
 
@@ -7,7 +8,7 @@ resource "aws_iam_role" "this" {
       Action = "sts:AssumeRole",
       Effect = "Allow",
       Principal = {
-        Service = "lambda.amazonaws.com"
+        Service = "lambda.amazonaws.com"  # AWS Lambda is allowed to assume this role
       }
     }]
   })
@@ -20,6 +21,7 @@ resource "aws_iam_role" "this" {
   )
 }
 
+# IAM policy defining permissions for the Lambda function
 resource "aws_iam_policy" "this" {
   name = "${var.project}-${var.environment}-LambdaPolicy"
   policy = jsonencode({
@@ -32,7 +34,7 @@ resource "aws_iam_policy" "this" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        Effect   = "Allow",
+        Effect   = "Allow"
         Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.this.account_id}:log-group:/aws/lambda/${aws_lambda_function.this.function_name}:*"
       },
       {
@@ -41,11 +43,11 @@ resource "aws_iam_policy" "this" {
           "s3:GetObject",
           "s3:PutObject"
         ],
-        Effect = "Allow",
+        Effect = "Allow"
         Resource = [
-          "${var.request_bucket_arn}/*",
-          "${var.response_bucket_arn}/*",
-          "${var.request_bucket_arn}",
+          "${var.request_bucket_arn}/*",   # Access to objects in request bucket
+          "${var.response_bucket_arn}/*",  # Access to objects in response bucket
+          "${var.request_bucket_arn}",     # Access to the bucket itself
           "${var.response_bucket_arn}",
         ]
       },
@@ -54,8 +56,8 @@ resource "aws_iam_policy" "this" {
         Action = [
           "translate:TranslateText"
         ],
-        Effect   = "Allow",
-        Resource = "*" # Lambda can translate any text
+        Effect   = "Allow"
+        Resource = "*" # Allows Lambda to translate any text
       },
       {
         Sid = "KMSPolicies"
@@ -63,8 +65,8 @@ resource "aws_iam_policy" "this" {
           "kms:Decrypt",
           "kms:GenerateDataKey"
         ],
-        Effect   = "Allow",
-        Resource = "*" # Lambda can translate any text
+        Effect   = "Allow"
+        Resource = "*" # Allows Lambda to decrypt data using KMS
       }
     ]
   })
@@ -74,6 +76,7 @@ resource "aws_iam_policy" "this" {
   }
 }
 
+# Attach the IAM policy to the IAM role for Lambda
 resource "aws_iam_role_policy_attachment" "this" {
   role       = aws_iam_role.this.name
   policy_arn = aws_iam_policy.this.arn

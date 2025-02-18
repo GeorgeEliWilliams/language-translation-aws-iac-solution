@@ -32,3 +32,13 @@ variable "kms_key_id" {
   description = "The KMS key ID to use for server-side encryption"
   type        = string
 }
+
+variable "api_gateway_method" {
+  description = "HTTP method for the API Gateway"
+  type        = string
+}
+
+variable "api_gateway_route" {
+  description = "Route key for the API Gateway"
+  type        = string
+}

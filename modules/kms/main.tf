@@ -23,7 +23,7 @@ resource "aws_kms_key" "this" {
           Sid    = "AllowLambdaAndS3Access"
           Effect = "Allow"
           Principal = {
-            Service = ["s3.amazonaws.com", "logs.amazonaws.com"]
+            Service = ["s3.amazonaws.com", "logs.amazonaws.com", "apigateway.amazonaws.com"]
           }
           Action = [
             "kms:Encrypt",
